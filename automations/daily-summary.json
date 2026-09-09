@@ -1,0 +1,52 @@
+{
+  "name": "AI Mart - Daily Sales Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Daily at 8 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull daily summary from Django API\n// Replace with httpRequest GET http://localhost:8000/api/analytics/daily/\n// and format a WhatsApp message.\n\nreturn [{\n  json: {\n    message: \"Sri Vinayaka Stores, today's summary:\\n\\nSales: Rs.18,450\\nTransactions: 142\\nItems sold: 480\\nPeak hour: 6 PM\\nNew customers: 12\\n\\nAI Tip: 3 products may stock-out tomorrow — review suggestions.\"\n  }\n}];"
+      },
+      "id": "build-summary",
+      "name": "Build Daily Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Send summary to owner's WhatsApp\nreturn $input.all();"
+      },
+      "id": "send-summary",
+      "name": "Send to Owner WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 200]
+    }
+  ],
+  "connections": {
+    "Daily at 8 PM": {
+      "main": [[{ "node": "Build Daily Summary", "type": "main", "index": 0 }]]
+    },
+    "Build Daily Summary": {
+      "main": [[{ "node": "Send to Owner WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "active": false
+}

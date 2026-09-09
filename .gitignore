@@ -1,0 +1,29 @@
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env.local
+
+# Django
+db.sqlite3
+/media/
+/staticfiles/
+
+# AI Engine
+.venv/
+*.pkl
+
+# Misc
+.DS_Store
+*.log
+.idea/
+.vscode/

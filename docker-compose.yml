@@ -1,0 +1,83 @@
+name: shopiq
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shopiq_postgres
+    environment:
+      POSTGRES_DB: shopiq_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: shopiq_backend
+    command: sh -c "python manage.py migrate && python manage.py seed_admin_roles && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      AI_ENGINE_URL: http://ai-engine:8001
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook
+
+  frontend:
+    build: ./frontend
+    container_name: shopiq_frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+
+  ai-engine:
+    build: ./ai_engine
+    container_name: shopiq_ai_engine
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    volumes:
+      - ./ai_engine:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - backend
+    environment:
+      api_base_url: http://backend:8000
+      debug: "true"
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: shopiq_n8n
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin123
+      GENERIC_TIMEZONE: Asia/Kolkata
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8ndata:/home/node/.n8n
+
+volumes:
+  pgdata:
+  n8ndata:

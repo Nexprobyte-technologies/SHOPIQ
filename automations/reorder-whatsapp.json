@@ -1,0 +1,47 @@
+{
+  "name": "AI Mart - Auto Re-Order WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reorder",
+        "options": {}
+      },
+      "id": "webhook-reorder",
+      "name": "Receive Reorder Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format WhatsApp message for supplier\nconst items = $input.all();\n\nconst message = items.map(({ json }) => {\n  const { product_name, suggested_quantity, supplier_phone, supplier_name } = json;\n  return `Namaste ${supplier_name},\\n\\nPlease supply ${suggested_quantity} units of ${product_name}.\\n\\nThanks,\\nSri Vinayaka Stores`;\n})\n\nreturn items.map((item, i) => ({\n  json: {\n    ...item.json,\n    whatsapp_message: message[i],\n    phone: item.json.supplier_phone\n  }\n}));"
+      },
+      "id": "format-message",
+      "name": "Format WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Placeholder: send via WhatsApp Business Cloud API\n// Replace with httpRequest node calling your WhatsApp provider.\nreturn $input.all();"
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 200]
+    }
+  ],
+  "connections": {
+    "Receive Reorder Request": {
+      "main": [[{ "node": "Format WhatsApp Message", "type": "main", "index": 0 }]]
+    },
+    "Format WhatsApp Message": {
+      "main": [[{ "node": "Send WhatsApp Order", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "active": false
+}

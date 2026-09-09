@@ -1,0 +1,47 @@
+{
+  "name": "AI Mart - Customer Refill Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "refill-reminder",
+        "options": {}
+      },
+      "id": "webhook-refill",
+      "name": "Receive Refill Prediction",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(({ json }) => {\n  const { customer_name, product_name, predicted_next_purchase_in_days, customer_phone } = json;\n  return {\n    json: {\n      ...json,\n      whatsapp_message: `Hi ${customer_name}!\\n\\nYour ${product_name} may be running low. We have it in stock at Sri Vinayaka Stores. Would you like to refill?\\n\\nReply REFILL to confirm, or visit us anytime.`,\n      phone: customer_phone\n    }\n  };\n});"
+      },
+      "id": "format-reminder",
+      "name": "Format Refill Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Send via WhatsApp Cloud API (replace with httpRequest node)\nreturn $input.all();"
+      },
+      "id": "send-reminder",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 200]
+    }
+  ],
+  "connections": {
+    "Receive Refill Prediction": {
+      "main": [[{ "node": "Format Refill Message", "type": "main", "index": 0 }]]
+    },
+    "Format Refill Message": {
+      "main": [[{ "node": "Send WhatsApp Reminder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "active": false
+}
