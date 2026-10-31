@@ -1,155 +1,92 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Store, Eye, EyeOff, Sparkles, TrendingUp, Package, Mic, ShieldCheck } from "lucide-react";
-import { api, getRoleHome } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import Script from "next/script";
+import { Alert, Box, Button, Checkbox, FormControlLabel, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+declare global {
+  interface Window {
+    google?: { accounts: { id: {
+      initialize: (options: { client_id: string; callback: (response: { credential: string }) => void }) => void;
+      renderButton: (element: HTMLElement, options: Record<string, string>) => void;
+    } } };
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  async function handleGoogleCredential(credential: string) {
+    setError(""); setBusy(true);
     try {
-      const res = await api.login(username, password);
-      localStorage.setItem("token", res.access);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      const home = getRoleHome(res.user.role);
-      if (home.startsWith("http")) window.location.href = home;
-      else router.push(home);
-    } catch {
-      setError("Invalid credentials. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const response = await fetch(`${API_URL}/auth/google`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Google sign-in failed.");
+      (keepSignedIn ? localStorage : sessionStorage).setItem("shopiq_token", data.accessToken);
+      router.replace("/dashboard");
+    } catch (err) { setError(err instanceof TypeError ? "Can't reach the SHOPIQ API. Start the backend server and make sure PostgreSQL is running." : err instanceof Error ? err.message : "Google sign-in failed."); }
+    finally { setBusy(false); }
+  }
+
+  function initializeGoogleButton() {
+    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current || !window.google) return;
+    googleButtonRef.current.replaceChildren();
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: ({ credential }) => { void handleGoogleCredential(credential); } });
+    window.google.accounts.id.renderButton(googleButtonRef.current, { type: "standard", theme: "outline", size: "large", text: "continue_with", shape: "rectangular", width: "360" });
+  }
+
+  useEffect(() => { initializeGoogleButton(); }, []);
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(""); setBusy(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Unable to sign in.");
+      (keepSignedIn ? localStorage : sessionStorage).setItem("shopiq_token", data.accessToken);
+      router.replace("/dashboard");
+    } catch (err) { setError(err instanceof TypeError ? "Can't reach the SHOPIQ API. Start the backend server and make sure PostgreSQL is running." : err instanceof Error ? err.message : "Unable to sign in."); }
+    finally { setBusy(false); }
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Left branding panel */}
-      <div className="hidden w-1/2 flex-col justify-between bg-[linear-gradient(135deg,#5711f6_0%,#9614eb_50%,#ff1ade_100%)] p-12 text-white lg:flex">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
-            <Store className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xl font-bold">SHOPIQ</p>
-            <p className="text-xs text-white/70">AI Business OS for Shops</p>
-          </div>
+    <main className="auth-page">
+      {GOOGLE_CLIENT_ID && <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={initializeGoogleButton} />}
+      <div className="auth-glow auth-glow-one" /><div className="auth-glow auth-glow-two" />
+      <header className="auth-header"><Link href="/" className="brand"><span className="brand-mark"><StorefrontRoundedIcon /></span><span>SHOP<span>IQ</span></span></Link><Link href="/" className="auth-back">Back to home <ArrowForwardRoundedIcon /></Link></header>
+      <section className="auth-layout">
+        <div className="auth-story"><span className="auth-eyebrow"><i /> YOUR BUSINESS, IN ITS BEST SHAPE</span><h1>Good to see<br />you <em>again.</em></h1><p>Your store is just a sign-in away. Pick up where you left off and keep good things moving.</p><div className="auth-story-note"><span className="auth-note-icon"><StorefrontRoundedIcon /></span><span><b>One clear view of your business</b><small>Orders, inventory and insights, all together.</small></span><span className="auth-note-dot" /></div><div className="auth-decoration auth-decoration-a" /><div className="auth-decoration auth-decoration-b" /></div>
+        <div className="auth-card"><div className="auth-card-heading"><span className="auth-mobile-mark"><StorefrontRoundedIcon /></span><Typography className="auth-kicker">WELCOME BACK</Typography><Typography component="h2">Sign in to your account</Typography><Typography className="auth-subtitle">Enter your details to access your workspace.</Typography></div>
+          {error && <Alert severity="error" className="auth-alert">{error}</Alert>}
+          <div className="auth-login-method"><span className="auth-login-method-active">Email login</span></div>
+          <form className="auth-form" onSubmit={signIn}>
+            <TextField label="Email address" type="email" autoComplete="email" required fullWidth placeholder="you@yourstore.com" value={email} onChange={e => setEmail(e.target.value)} />
+            <div className="auth-field-top"><label htmlFor="login-password">Password</label><span>Use your account password</span></div>
+            <TextField id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" required fullWidth placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end"><IconButton aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}</IconButton></InputAdornment> }} />
+            <FormControlLabel className="auth-remember" control={<Checkbox size="small" checked={keepSignedIn} onChange={e => setKeepSignedIn(e.target.checked)} />} label="Keep me signed in" />
+            <Button type="submit" variant="contained" fullWidth className="auth-submit" disabled={busy}>{busy ? "Signing in…" : "Sign in with email"} <ArrowForwardRoundedIcon /></Button>
+          </form><div className="auth-switch">New to SHOPIQ? <Link href="/register">Create an account</Link></div>
+          <div className="auth-or"><span />or<span /></div>
+          {GOOGLE_CLIENT_ID ? <div className="google-signin-wrap"><div ref={googleButtonRef} /></div> : <Alert severity="info" className="google-config-note">Google sign-in needs a Google OAuth client ID. Configure `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to enable it.</Alert>}
         </div>
-
-        <div className="max-w-md">
-          <h1 className="text-4xl font-bold leading-tight">
-            Your shop software doesn&apos;t just record your business.
-          </h1>
-          <p className="mt-2 text-lg font-semibold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-            It tells you what to do next.
-          </p>
-
-          <div className="mt-10 space-y-4">
-            {[
-              { icon: TrendingUp, title: "AI Sales Insights", desc: "Know why sales are down before it hurts" },
-              { icon: Package, title: "Auto Re-Order", desc: "One-click WhatsApp orders to suppliers" },
-              { icon: Mic, title: "Voice Billing", desc: "Just speak — we create the bill" },
-            ].map((f) => (
-              <div key={f.title} className="flex items-start gap-3 rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/15">
-                  <f.icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="font-semibold">{f.title}</p>
-                  <p className="text-xs text-white/75">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-xs text-white/60">© 2026 SHOPIQ. Empowering small businesses.</p>
-      </div>
-
-      {/* Right form panel */}
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-danger">
-              <Store className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-dark">SHOPIQ</p>
-              <p className="text-xs text-gray-400">AI Business OS for Shops</p>
-            </div>
-          </div>
-
-          <div className="mb-6 flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary via-purple to-danger">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-dark">Welcome back</h2>
-          </div>
-          <p className="mb-6 text-sm text-gray-500">Sign in to your business dashboard</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Username</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" required />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="rounded-lg bg-danger-50 p-3 text-sm text-danger">{error}</div>
-            )}
-
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-
-          <div className="mt-6 space-y-2 rounded-lg bg-gray-50 p-4">
-            <p className="text-xs text-gray-500">
-              <span className="font-semibold text-gray-700">Demo accounts:</span>
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600">admin / admin123</span>
-              <span className="rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600">superadmin / superadmin@123</span>
-              <span className="rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600">billadmin / billadmin@123</span>
-              <span className="rounded bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600">stackadmin / stackadmin@123</span>
-            </div>
-            <Link href="/admin/login" className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-primary hover:underline">
-              <ShieldCheck className="h-3.5 w-3.5" /> Open role-based admin panel →
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+      <footer className="auth-footer"><span>© 2026 SHOPIQ</span><span>MADE FOR THE WAY YOU GROW</span><Link href="/">shopiq.com</Link></footer>
+    </main>
   );
 }

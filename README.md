@@ -1,154 +1,114 @@
-# 🏪 SHOPIQ — AI Business Operating System for Shops
+# SHOPIQ
 
-> **Your shop software doesn't just record your business. It tells you what to do next.**
+SHOPIQ is a store management web app. The current codebase contains a Next.js frontend and a NestJS API for store-owner accounts.
 
-SHOPIQ is not another billing software — it's an **AI Business Operating System for small shops**. It goes beyond Billing + Stock + Payments to give shop owners an AI assistant that analyzes data and tells them what to do next.
+## What is implemented
 
-## 🏗️ Architecture
+- A responsive SHOPIQ sign-in page with email and password fields.
+- A Google sign-in button that verifies Google credentials through the NestJS API for existing store-owner accounts.
+- Login requests sent to the NestJS API. On success, the API token is saved in browser storage. `Keep me signed in` chooses persistent browser storage; clearing it keeps the token for the current browser session.
+- A three-step owner registration flow:
+  1. Store owner name and email.
+  2. Store name and category.
+  3. Password and account creation.
+- The API creates a store owner and their store together. The user role is set to `STORE_OWNER`; the registration form does not accept a different role.
+- Passwords are stored as bcrypt hashes. The API returns a JWT that expires after one day.
+- PostgreSQL persistence through Prisma.
 
-```
-Next.js (Dashboard UI)
-        ↓  API
-Django REST API
-        ↓
-PostgreSQL
-        ↓
- ┌──────────────┴─────────────┐
- ↓                            ↓
-Python AI Engine (FastAPI)    n8n (Automations)
-  - Sales analysis            - WhatsApp orders
-  - Stock-out prediction      - Refill reminders
-  - Dead stock detection      - Daily summaries
-  - Customer refill prediction
-  - Health score
-```
+## Languages and technologies
 
-## ✨ The 7 AI Features (USP)
+| Area | Languages / technologies |
+| --- | --- |
+| Frontend | TypeScript, TSX (React), CSS, Next.js, Material UI |
+| Backend | TypeScript, NestJS, Node.js |
+| Database | PostgreSQL, Prisma schema (`.prisma`) |
+| Authentication | Email/password, Google Identity Services, JWT |
+| Project configuration | JSON, environment files (`.env`) |
 
-1. **AI Shop Manager** — The software *tells* the owner what's happening instead of them digging through reports
-2. **Auto Re-Order System** — Stock drops → predicts stock-out → one-click WhatsApp order to supplier
-3. **Customer Return Predictor** — Predict refill dates → auto WhatsApp marketing
-4. **Dead Stock Recovery** — Identify slow movers → suggest discount/combo → convert stock to cash
-5. **Shop Health Score** — One score (0–100) summarizing entire business health
-6. **Voice Billing** — Tamil + English voice → auto bill creation
-7. **"Why Sales Down?" AI** — Natural-language root-cause analysis + recommended actions
+The database is PostgreSQL. The connection is configured with `DATABASE_URL`; Prisma manages the schema and migrations.
 
-## 📁 Project Structure
+## Run the frontend
 
-```
-AI_Mart/
-├── frontend/          # Next.js 16 + Tailwind CSS v4 dashboard
-│   └── src/
-│       ├── app/       # Pages: dashboard, billing, products, stock,
-│       │              #         customers, ai-insights, voice-billing,
-│       │              #         sales-analytics, health-score, automations,
-│       │              #         why-sales-down, settings, login
-│       ├── components/ # Sidebar, Topbar, UI primitives (Card, Button, etc.)
-│       ├── lib/        # api client, utils
-│       └── types/      # TypeScript interfaces
-├── backend/           # Django REST API
-│   ├── accounts/      # Users & JWT auth (roles: super/dev/billing/stock admin)
-│   ├── shops/         # Shop, ShopStaff
-│   ├── products/      # Category, Supplier, Product, StockMovement
-│   ├── billing/       # Customer, Invoice, InvoiceItem, Payment
-│   ├── analytics/     # Daily/Weekly/Monthly sales summaries
-│   ├── ai_insights/   # AIInsight, AutoReorder, CustomerPrediction
-│   └── operations/    # Employee, Attendance, StackEntry, PackDelivery
-├── ai_engine/         # Python FastAPI AI Engine
-│   └── app/
-│       ├── api/endpoints/  # sales, reorder, dead_stock, customers,
-│       │                   # health_score, ask (natural language)
-│       └── config.py
-├── automations/       # n8n workflow JSON exports (WhatsApp etc.)
-└── docker-compose.yml # Full-stack: postgres + backend + frontend + ai-engine + n8n
-```
+In a terminal:
 
-## 🚀 Quick Start
-
-### 1. Database (PostgreSQL)
-```bash
-docker compose up postgres -d
-# or create DB manually:
-# createdb shopiq_db
-```
-
-### 2. Backend (Django)
-```bash
-cd backend
-pip install -r requirements.txt
-cp .env.example .env   # configure DB credentials
-python manage.py migrate
-python manage.py seed_admin_roles   # creates the 4 role admin accounts
-python manage.py runserver
-# API at http://localhost:8000/api/
-# Django admin (Jazzmin themed) at http://localhost:8000/admin/
-```
-
-### 3. Frontend (Next.js)
-```bash
+```sh
 cd frontend
 npm install
 npm run dev
-# Dashboard at http://localhost:3000
 ```
 
-### 4. AI Engine (FastAPI)
-```bash
-cd ai_engine
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8001
-# AI API at http://localhost:8001/api/docs
+The frontend runs at `http://localhost:3000`. It uses `http://localhost:3001` as the default API URL. To use another API origin, set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`.
+
+## Run the API
+
+In a second terminal:
+
+```sh
+cd backend
 ```
 
-### 5. n8n Automations
-```bash
-docker compose up n8n -d
-# http://localhost:5678  (admin / admin123)
-# Import workflows from /automations
+Install and start PostgreSQL, then create a database named `shopiq` (or choose another name). Copy `backend/.env.example` to `backend/.env`, set `DATABASE_URL` to match your PostgreSQL username, password, host, port, and database, and set a strong, random `JWT_SECRET`. Install and prepare the API:
+
+```sh
+npm install
+npx prisma migrate dev --name init
+npm run start:dev
 ```
 
-### Full stack
-```bash
-docker compose up --build
+The NestJS API listens at `http://localhost:3001` by default. Configure `PORT` or `FRONTEND_URL` in `backend/.env` to change the port or allowed frontend origin.
+
+### Super admin panel
+
+The platform administrator can sign in at `http://localhost:3000/admin/login`. Set `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` in `backend/.env` (copy the variable names from `.env.example`) before starting the API. Replace the example password with a long, unique secret and keep it private. The `/admin` dashboard checks for the `SUPER_ADMIN` role; its overview API returns store and owner counts, new registrations from the last seven days, and the latest registered stores from PostgreSQL. Store owners cannot use the super admin login.
+
+The admin interface is modeled on a retail operations dashboard, with a left navigation rail, platform metrics, a store growth chart, and a recent stores/owners directory. The store directory currently shows the six most recent registrations.
+
+Store-owner registration, email login, and Google login send store owners to `/dashboard`. That page verifies the session against `GET /auth/me` and loads the owner and store details from PostgreSQL. Super-admin access remains separate at `/admin/login`.
+
+### Enable Google sign-in
+
+Create a Google OAuth 2.0 Web client in Google Cloud Console and add `http://localhost:3000` as an authorized JavaScript origin. Put that same client ID in `backend/.env` as `GOOGLE_CLIENT_ID` and `frontend/.env.local` as `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, then restart both servers. Google sign-in verifies the credential on the API and only signs in an existing SHOPIQ store-owner account with the same verified Google email. New store owners should first complete the three-step registration.
+
+## Authentication API
+
+### `POST /auth/register`
+
+Creates a store owner and a store. Send JSON with these fields:
+
+```json
+{
+  "name": "Alex Morgan",
+  "email": "alex@example.com",
+  "password": "at-least-8-characters",
+  "storeName": "Alex's Store",
+  "storeCategory": "Clothing"
+}
 ```
 
-## 🔐 Role-Based Admin Panel
+### `POST /auth/login`
 
-Each role logs in through **`http://localhost:3000/admin/login`** and is routed to its own panel:
+Signs in an existing account with email and password:
 
-| Status | Role | Where it runs | Username | Password | Access |
-|--------|------|---------------|----------|----------|--------|
-| 1 | Dev Admin | **Django admin** (`/admin/`, Jazzmin) | `admin` | `admin123` | Full system access, manage users with **auto 12-digit password** generator, check all panels |
-| 2 | Super Admin | Frontend panel | `superadmin` | `superadmin@123` | Stores, billing & payments, stack minose/increase, employee attendance, send stack report |
-| 3 | Billing Admin | Frontend panel | `billadmin` | `billadmin@123` | Enter daily bills |
-| 4 | Stock Received Admin | Frontend panel | `stackadmin` | `stackadmin@123` | Confirm stack received, pack & delivery tracking dropdowns |
+```json
+{
+  "email": "alex@example.com",
+  "password": "at-least-8-characters"
+}
+```
 
-- **Status 1 (Dev Admin)** uses the Django admin only. Its dashboard is the Jazzmin-styled admin at
-  `http://localhost:8000/admin/` — where it can add users and auto-generate 12-digit numeric passwords
-  (the "Generate 12-digit password" action on the Users list, or leave password blank on add).
-- **Status 2 / 3 / 4** use the frontend role panels (Pulse-UI style): sidebar navigation on the left, content on the right.
-- Admins are seeded with `python manage.py seed_admin_roles`.
+Both endpoints return an `accessToken` and user details when successful. The API validates request fields and reports duplicate emails or invalid login credentials with an error response.
 
-### User Roles
-| Status | Role |
-|--------|------|
-| 1 | Dev Admin |
-| 2 | Super Admin |
-| 3 | Billing Admin |
-| 4 | Stock Received Admin |
+### `POST /auth/google`
 
-### Operations API (in `backend/operations/`)
-- `/api/employees/`, `/api/attendances/` — employee & attendance tracking
-- `/api/stacks/` (+ `POST /api/stacks/:id/confirm/`) — stack received / increase / decrease, confirm updates live product stock
-- `/api/deliveries/` — pack & delivery tracking with dropdown statuses
+Verifies a Google Identity Services credential and signs in the matching existing store-owner account:
 
-## 🎨 UI
-Dashboard UI is styled after the **Dreams AI Agent** Tailwind admin template — modern, clean, with gradient accents, dark-mode-ready color tokens, and mobile responsive layout. The role admin panel follows the **Pulse UI** look with a purple gradient sidebar.
+```json
+{
+  "credential": "google-identity-token-from-the-browser"
+}
+```
 
-## ⚙️ Tech Stack
-- **Frontend:** Next.js 16, React, TypeScript, Tailwind CSS v4, Lucide icons
-- **Backend:** Django 5, Django REST Framework, SimpleJWT, Channels, Jazzmin
-- **Database:** PostgreSQL
-- **AI:** Python FastAPI engine (custom analytics + rules + future LLM hooks)
-- **Automation:** n8n (WhatsApp, email, push notifications)
-# AI_Mart
+## Project folders
+
+- `frontend/` - Next.js app, including `/login` and `/register`.
+- `backend/` - NestJS API, Prisma schema, and PostgreSQL setup instructions.
