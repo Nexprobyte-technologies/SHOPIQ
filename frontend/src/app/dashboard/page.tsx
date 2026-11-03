@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, ArrowRight, Boxes, LogOut, ShoppingBag, Store, UserRound } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 type Owner = { name: string; email: string; role: string; store: { name: string; category: string; createdAt: string } };
 
 export default function OwnerDashboardPage() {

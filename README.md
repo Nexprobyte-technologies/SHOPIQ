@@ -37,7 +37,7 @@ npm install
 npm run dev
 ```
 
-The frontend runs at `http://localhost:3000`. It uses `http://localhost:3001` as the default API URL. To use another API origin, set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`.
+The frontend runs at `http://localhost:3000`. It uses `http://localhost:8000` as the default API URL. To use another API origin, set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`.
 
 ## Run the API
 
@@ -54,12 +54,12 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 py -m pip install -r requirements.txt
 py manage.py migrate
-py manage.py runserver 0.0.0.0:3001
+py manage.py runserver 0.0.0.0:8000
 ```
 
 POSTGRESQL PSW: admin@123
 
-The Django API listens at `http://localhost:3001` with the command above. Set `JWT_SECRET` and `FRONTEND_URL` in `backend/.env`. Set `GOOGLE_CLIENT_ID` and the super admin credentials to enable those sign-in flows.
+The Django API listens at `http://localhost:8000` with the command above. Set `JWT_SECRET` and `FRONTEND_URL` in `backend/.env`. Set `GOOGLE_CLIENT_ID` and the super admin credentials to enable those sign-in flows.
 
 ### Super admin panel
 

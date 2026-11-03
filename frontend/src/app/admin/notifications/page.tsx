@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownRight, Bell, CheckCheck, LayoutDashboard, LogOut, Menu, Search, ShieldCheck, ShoppingBag, Store, Users, Wallet } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 type AdminNotificationIcon = "store" | "order" | "payout" | "user" | "security";
 type AdminNotification = { id: string; icon: AdminNotificationIcon; title: string; message: string; time: string; unread: boolean };
 const initialNotifications: AdminNotification[] = [

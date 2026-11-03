@@ -1,0 +1,14 @@
+
+# Dependencies and build files
+node_modules/
+.next/
+**/node_modules/
+**/.next/
+*.log
+
+# Local database and Python cache
+backend/db.sqlite3
+__pycache__/
+*.pyc
+.venv/
+.env
