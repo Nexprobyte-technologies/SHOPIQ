@@ -1,0 +1,24 @@
+
+> shopiq-api@1.0.0 start:dev
+> nest start --watch
+
+node:internal/modules/cjs/loader:671
+      throw e;
+      ^
+
+Error: Cannot find module 'D:\Nandha_Work\SHOPIQ\backend\node_modules\rxjs\dist\cjs\index.js'
+    at createEsmNotFoundErr (node:internal/modules/cjs/loader:1466:15)
+    at finalizeEsmResolution (node:internal/modules/cjs/loader:1455:15)
+    at resolveExports (node:internal/modules/cjs/loader:664:14)
+    at Function._findPath (node:internal/modules/cjs/loader:731:31)
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1415:27)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12) {
+  code: 'MODULE_NOT_FOUND',
+  path: 'D:\\Nandha_Work\\SHOPIQ\\backend\\node_modules\\rxjs'
+}
+
+Node.js v22.23.3

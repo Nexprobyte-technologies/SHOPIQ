@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
       if (!response.ok) throw new Error(data.message || "Admin sign-in failed.");
       sessionStorage.setItem("shopiq_admin_token", data.accessToken);
       router.replace("/admin");
-    } catch (err) { setError(err instanceof Error ? err.message : "Could not connect to the server."); }
+    } catch (err) { setError(err instanceof TypeError ? "Unable to reach the SHOPIQ API. Please make sure the backend server is running and try again." : err instanceof Error ? err.message : "Could not connect to the server."); }
     finally { setBusy(false); }
   }
 
